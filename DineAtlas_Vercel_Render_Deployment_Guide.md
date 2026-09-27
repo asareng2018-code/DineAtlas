@@ -30,23 +30,46 @@ Recommended option:
 Alternative:
 - Open Command Prompt and run the same commands
 
-### Commands
+### GitHub repository reference
+Repository URL used successfully:
+```text
+https://github.com/asareng2018-code/DineAtlas.git
+```
+
+Reference screenshot: the GitHub “Create a new repository” page was used with:
+- Owner: `asareng2018-code`
+- Repository name: `DineAtlas`
+- Visibility: `Public`
+- README: disabled
+- .gitignore: disabled
+- License: disabled
+
+### Screenshot reference for Step 1
+
+![GitHub new repository screen](./github-new-repository.png)
+
+> The screenshot above shows the exact GitHub repository creation screen used for this project. The important values are:
+> - Owner: `asareng2018-code`
+> - Repository name: `DineAtlas`
+> - Visibility: `Public`
+> - README: Off
+> - .gitignore: No
+> - License: No license
+
+### Commands used successfully
 ```powershell
-cd "f:\Proj"
-
-git --version
-if ($LASTEXITCODE -ne 0) {
-  Write-Host "Git is not installed or not on PATH. Install Git and reopen PowerShell."
-  exit 1
-}
-
-git init
-git branch -M main
+cd "F:\Proj"
+git remote set-url origin https://github.com/asareng2018-code/DineAtlas.git
+git status
 git add .
 git commit -m "Prepare DineAtlas public launch repo"
-git remote add origin https://github.com/YOUR_USERNAME/DineAtlas.git
 git push -u origin main
 ```
+
+### Notes
+- The repository already existed locally and was already on the `main` branch.
+- The remote URL had to be corrected to the real GitHub repository before the push.
+- The push succeeded and the repo is now connected to GitHub.
 
 ### If Git is not recognized
 1. Install Git for Windows from the official website.
@@ -66,13 +89,14 @@ where.exe git
 Then verify Git is in your PATH.
 
 ### Verification checklist
-- [ ] Git repo initialized
-- [ ] All project files are added
-- [ ] Frontend folder is included
-- [ ] Backend folder is included
-- [ ] Commit created successfully
-- [ ] GitHub remote is configured
-- [ ] Push completed successfully
+- [x] Git repo exists and is connected to GitHub
+- [x] Remote URL was corrected to the actual GitHub repository
+- [x] Local project files are tracked
+- [x] Frontend folder is included
+- [x] Backend folder is included
+- [x] Commit completed successfully
+- [x] Push to GitHub succeeded
+- [x] Branch `main` is tracking `origin/main`
 
 ---
 
