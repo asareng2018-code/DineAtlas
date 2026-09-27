@@ -1,0 +1,37 @@
+version: '3.9'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      NEXT_PUBLIC_API_URL: http://backend:4000
+      NODE_ENV: production
+    depends_on:
+      - backend
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    ports:
+      - '4000:4000'
+    environment:
+      PORT: 4000
+      NODE_ENV: production
+      SESSION_SECRET: change-me
+      GOOGLE_CLIENT_ID: your-google-client-id
+      GOOGLE_CLIENT_SECRET: your-google-client-secret
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:4000']
+      interval: 30s
+      timeout: 10s
+      retries: 5

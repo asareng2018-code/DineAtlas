@@ -1,0 +1,11 @@
+node_modules
+.git
+.gitignore
+npm-debug.log
+dist
+.next
+coverage
+.env
+.env.local
+Dockerfile
+**/.DS_Store
