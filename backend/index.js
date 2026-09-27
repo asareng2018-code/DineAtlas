@@ -152,7 +152,7 @@ const prayerSchedules = {
     { name: 'Maghrib', time: '7:13 PM' },
     { name: 'Isha', time: '8:35 PM' },
   ],
-  Kuala Lumpur: [
+  'Kuala Lumpur': [
     { name: 'Fajr', time: '5:33 AM' },
     { name: 'Dhuhr', time: '1:18 PM' },
     { name: 'Asr', time: '4:19 PM' },
