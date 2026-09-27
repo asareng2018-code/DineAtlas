@@ -2,7 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
 const csrf = require('csurf');
 const session = require('express-session');
 const { body, validationResult } = require('express-validator');
@@ -43,16 +42,30 @@ app.use(
 );
 app.use(passport.initialize());
 app.use(passport.session());
-app.use(
-  '/api',
-  rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 200,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: { message: 'Too many requests, please try again later.' },
-  })
-);
+
+const rateLimitStore = new Map();
+app.use('/api', (req, res, next) => {
+  const now = Date.now();
+  const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+  const windowMs = 15 * 60 * 1000;
+  const maxRequests = 200;
+  const key = `rate-limit:${ip}`;
+
+  const record = rateLimitStore.get(key) || { count: 0, resetAt: now + windowMs };
+
+  if (now > record.resetAt) {
+    record.count = 0;
+    record.resetAt = now + windowMs;
+  }
+
+  if (record.count >= maxRequests) {
+    return res.status(429).json({ message: 'Too many requests, please try again later.' });
+  }
+
+  record.count += 1;
+  rateLimitStore.set(key, record);
+  return next();
+});
 
 app.use((req, res, next) => {
   if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') {
