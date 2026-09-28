@@ -1,4 +1,5 @@
 const express = require('express');
+const axios = require('axios');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const helmet = require('helmet');
@@ -144,7 +145,35 @@ const sampleOffers = [
   },
 ];
 
-const prayerSchedules = {
+const parsePrayerTime = (timeValue) => {
+  const [time, meridiem] = timeValue.trim().split(' ');
+  const [hoursRaw, minutesRaw] = time.split(':');
+  let hours = Number(hoursRaw);
+  const minutes = Number(minutesRaw);
+
+  if (meridiem === 'PM' && hours !== 12) {
+    hours += 12;
+  }
+
+  if (meridiem === 'AM' && hours === 12) {
+    hours = 0;
+  }
+
+  return hours * 60 + minutes;
+};
+
+const getNextPrayer = (prayers, now = new Date()) => {
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  const upcomingPrayer = prayers.find((prayer) => parsePrayerTime(prayer.time) > currentMinutes);
+  if (upcomingPrayer) {
+    return upcomingPrayer;
+  }
+
+  return prayers[0];
+};
+
+const staticPrayerSchedules = {
   Singapore: [
     { name: 'Fajr', time: '5:12 AM' },
     { name: 'Dhuhr', time: '1:03 PM' },
@@ -166,6 +195,39 @@ const prayerSchedules = {
     { name: 'Maghrib', time: '6:53 PM' },
     { name: 'Isha', time: '8:12 PM' },
   ],
+};
+
+const prayerCountryMap = {
+  Singapore: 'SG',
+  'Kuala Lumpur': 'MY',
+  Dubai: 'AE',
+};
+
+const fetchPrayerTimesForCity = async (city = 'Singapore') => {
+  const normalizedCity = city.trim();
+  const country = prayerCountryMap[normalizedCity] || 'SG';
+
+  const response = await axios.get('https://api.aladhan.com/v1/timingsByCity', {
+    params: {
+      city: normalizedCity,
+      country,
+      method: 2,
+    },
+    timeout: 10000,
+  });
+
+  const timings = response.data?.data?.timings || {};
+  const prayerOrder = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+  const prayers = prayerOrder.map((name) => ({
+    name,
+    time: timings[name] || staticPrayerSchedules[normalizedCity]?.find((item) => item.name === name)?.time || '00:00 AM',
+  }));
+
+  return {
+    city: normalizedCity,
+    prayers,
+    nextPrayer: getNextPrayer(prayers, new Date()),
+  };
 };
 
 const filters = {
@@ -424,21 +486,31 @@ app.delete('/api/favorites/:restaurantId', (req, res) => {
   return res.json({ removed, message: 'Favorite removed' });
 });
 
-app.get('/api/prayer-times', (req, res) => {
+app.get('/api/prayer-times', async (req, res) => {
   const city = String(req.query.city || 'Singapore');
-  const normalizedCity = Object.keys(prayerSchedules).find(
+  const normalizedCity = Object.keys(staticPrayerSchedules).find(
     (entry) => entry.toLowerCase() === city.toLowerCase()
   ) || 'Singapore';
 
-  const prayers = prayerSchedules[normalizedCity] || prayerSchedules.Singapore;
-  const nextPrayer = prayers[3] || prayers[0];
+  try {
+    const livePrayerData = await fetchPrayerTimesForCity(normalizedCity);
+    return res.json({
+      city: livePrayerData.city,
+      date: new Date().toISOString().slice(0, 10),
+      nextPrayer: livePrayerData.nextPrayer,
+      prayers: livePrayerData.prayers,
+    });
+  } catch (error) {
+    const prayers = staticPrayerSchedules[normalizedCity] || staticPrayerSchedules.Singapore;
+    const nextPrayer = getNextPrayer(prayers, new Date());
 
-  res.json({
-    city: normalizedCity,
-    date: new Date().toISOString().slice(0, 10),
-    nextPrayer,
-    prayers,
-  });
+    return res.json({
+      city: normalizedCity,
+      date: new Date().toISOString().slice(0, 10),
+      nextPrayer,
+      prayers,
+    });
+  }
 });
 
 app.get('/api/offers', (req, res) => {

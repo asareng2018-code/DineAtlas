@@ -44,6 +44,30 @@ const defaultPrayerSchedule = [
   { name: 'Isha', time: '8:35 PM' },
 ];
 
+const parsePrayerTime = (timeValue: string) => {
+  const [time, meridiem] = timeValue.trim().split(' ');
+  const [hoursRaw, minutesRaw] = time.split(':');
+  let hours = Number(hoursRaw);
+  const minutes = Number(minutesRaw);
+
+  if (meridiem === 'PM' && hours !== 12) {
+    hours += 12;
+  }
+
+  if (meridiem === 'AM' && hours === 12) {
+    hours = 0;
+  }
+
+  return hours * 60 + minutes;
+};
+
+const getNextPrayer = (prayers: { name: string; time: string }[]) => {
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const upcomingPrayer = prayers.find((prayer) => parsePrayerTime(prayer.time) > currentMinutes);
+  return upcomingPrayer || prayers[0];
+};
+
 export default function Home() {
   const [locale, setLocale] = useState<Locale>('en');
   const [health, setHealth] = useState<string>('Checking API...');
@@ -59,7 +83,7 @@ export default function Home() {
   const [prayerDetails, setPrayerDetails] = useState<{ city: string; nextPrayer?: { name: string; time: string }; prayers: { name: string; time: string }[] }>({
     city: 'Singapore',
     prayers: defaultPrayerSchedule,
-    nextPrayer: { name: 'Maghrib', time: '7:13 PM' },
+    nextPrayer: getNextPrayer(defaultPrayerSchedule),
   });
   const t = translations[locale];
 
@@ -92,17 +116,23 @@ export default function Home() {
       .catch(() => setOffers([]));
 
     fetch(`${apiBase}/api/prayer-times?city=Singapore`, { credentials: 'include' })
-      .then((res) => (res.ok ? res.json() : { city: 'Singapore', prayers: defaultPrayerSchedule, nextPrayer: { name: 'Maghrib', time: '7:13 PM' } }))
+      .then((res) => (res.ok ? res.json() : { city: 'Singapore', prayers: defaultPrayerSchedule, nextPrayer: getNextPrayer(defaultPrayerSchedule) }))
       .then((data) => {
         if (data && Array.isArray(data.prayers) && data.prayers.length > 0) {
           setPrayerDetails({
             city: data.city || 'Singapore',
-            nextPrayer: data.nextPrayer || data.prayers[3],
+            nextPrayer: data.nextPrayer || getNextPrayer(data.prayers),
             prayers: data.prayers,
           });
         }
       })
-      .catch(() => undefined);
+      .catch(() => {
+        setPrayerDetails({
+          city: 'Singapore',
+          nextPrayer: getNextPrayer(defaultPrayerSchedule),
+          prayers: defaultPrayerSchedule,
+        });
+      });
 
     fetch(`${apiBase}/api/profile`, { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : null))
@@ -153,7 +183,7 @@ export default function Home() {
   }, [userLocation]);
 
   const requestLocation = () => {
-    if (!navigator.geolocation) {
+    if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
       setLocationStatus(t.locationUnsupported);
       return;
     }
@@ -166,7 +196,7 @@ export default function Home() {
         setLocationStatus(t.useMyLocation);
       },
       () => {
-        setLocationStatus(t.locationPermissionDenied);
+        setLocationStatus(t.locationPermissionDenied || t.locationOff);
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
