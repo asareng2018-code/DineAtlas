@@ -196,7 +196,7 @@ export default function Home() {
         setLocationStatus(t.useMyLocation);
       },
       () => {
-        setLocationStatus(t.locationPermissionDenied || t.locationOff);
+        setLocationStatus(t.locationPermissionDenied || 'Location off');
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
