@@ -162,8 +162,29 @@ const parsePrayerTime = (timeValue) => {
   return hours * 60 + minutes;
 };
 
-const getNextPrayer = (prayers, now = new Date()) => {
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+const getCurrentMinutesInCity = (cityName, now = new Date()) => {
+  const timeZoneMap = {
+    Singapore: 'Asia/Singapore',
+    'Kuala Lumpur': 'Asia/Kuala_Lumpur',
+    Dubai: 'Asia/Dubai',
+  };
+
+  const timeZone = timeZoneMap[cityName] || 'Asia/Singapore';
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+
+  const parts = formatter.formatToParts(now);
+  const hour = Number(parts.find((part) => part.type === 'hour')?.value || 0);
+  const minute = Number(parts.find((part) => part.type === 'minute')?.value || 0);
+  return hour * 60 + minute;
+};
+
+const getNextPrayer = (prayers, cityName = 'Singapore', now = new Date()) => {
+  const currentMinutes = getCurrentMinutesInCity(cityName, now);
 
   const upcomingPrayer = prayers.find((prayer) => parsePrayerTime(prayer.time) > currentMinutes);
   if (upcomingPrayer) {
@@ -226,7 +247,7 @@ const fetchPrayerTimesForCity = async (city = 'Singapore') => {
   return {
     city: normalizedCity,
     prayers,
-    nextPrayer: getNextPrayer(prayers, new Date()),
+    nextPrayer: getNextPrayer(prayers, normalizedCity, new Date()),
   };
 };
 
@@ -502,7 +523,7 @@ app.get('/api/prayer-times', async (req, res) => {
     });
   } catch (error) {
     const prayers = staticPrayerSchedules[normalizedCity] || staticPrayerSchedules.Singapore;
-    const nextPrayer = getNextPrayer(prayers, new Date());
+    const nextPrayer = getNextPrayer(prayers, normalizedCity, new Date());
 
     return res.json({
       city: normalizedCity,

@@ -61,9 +61,29 @@ const parsePrayerTime = (timeValue: string) => {
   return hours * 60 + minutes;
 };
 
-const getNextPrayer = (prayers: { name: string; time: string }[]) => {
+const getCurrentMinutesInTimeZone = (timeZone: string, now = new Date()) => {
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+
+  const parts = formatter.formatToParts(now);
+  const hour = Number(parts.find((part) => part.type === 'hour')?.value || 0);
+  const minute = Number(parts.find((part) => part.type === 'minute')?.value || 0);
+  return hour * 60 + minute;
+};
+
+const getNextPrayer = (prayers: { name: string; time: string }[], city = 'Singapore') => {
+  const timeZoneMap: Record<string, string> = {
+    Singapore: 'Asia/Singapore',
+    'Kuala Lumpur': 'Asia/Kuala_Lumpur',
+    Dubai: 'Asia/Dubai',
+  };
+
   const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const currentMinutes = getCurrentMinutesInTimeZone(timeZoneMap[city] || 'Asia/Singapore', now);
   const upcomingPrayer = prayers.find((prayer) => parsePrayerTime(prayer.time) > currentMinutes);
   return upcomingPrayer || prayers[0];
 };
