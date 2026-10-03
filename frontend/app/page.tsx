@@ -88,6 +88,20 @@ const getNextPrayer = (prayers: { name: string; time: string }[], city = 'Singap
   return upcomingPrayer || prayers[0];
 };
 
+const getCurrentPrayer = (prayers: { name: string; time: string }[], city = 'Singapore') => {
+  const timeZoneMap: Record<string, string> = {
+    Singapore: 'Asia/Singapore',
+    'Kuala Lumpur': 'Asia/Kuala_Lumpur',
+    Dubai: 'Asia/Dubai',
+  };
+
+  const now = new Date();
+  const currentMinutes = getCurrentMinutesInTimeZone(timeZoneMap[city] || 'Asia/Singapore', now);
+
+  const currentPrayer = [...prayers].reverse().find((prayer) => parsePrayerTime(prayer.time) <= currentMinutes) || prayers[0];
+  return currentPrayer;
+};
+
 export default function Home() {
   const [locale, setLocale] = useState<Locale>('en');
   const [health, setHealth] = useState<string>('Checking API...');
@@ -372,7 +386,6 @@ export default function Home() {
       <div className="max-w-6xl w-full rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl sm:p-8">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="mb-2 text-sm uppercase tracking-[0.2em] text-emerald-400">Public site • No login required</p>
             <h1 className="text-3xl font-bold sm:text-5xl">{t.title}</h1>
             <p className="mt-3 text-base text-emerald-200 sm:text-xl">{t.headline}</p>
           </div>
@@ -416,9 +429,27 @@ export default function Home() {
           </div>
 
           <div className="rounded-xl border border-slate-700 bg-slate-950 p-5">
-            <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Next prayer</p>
-            <p className="mt-3 text-2xl font-semibold text-emerald-300">{prayerDetails.nextPrayer?.name || 'Maghrib'}</p>
-            <p className="mt-1 text-sm text-slate-300">{prayerDetails.nextPrayer?.time || '7:13 PM'} • {prayerDetails.city}</p>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Current prayer</p>
+                <p className="mt-3 text-2xl font-semibold text-emerald-300">
+                  {getCurrentPrayer(prayerDetails.prayers, prayerDetails.city)?.name || 'Fajr'}
+                </p>
+                <div className="mt-3 space-y-1 text-sm text-slate-300">
+                  <p><span className="text-slate-400">Start:</span> {getCurrentPrayer(prayerDetails.prayers, prayerDetails.city)?.time || '5:12 AM'}</p>
+                  <p><span className="text-slate-400">End:</span> {prayerDetails.nextPrayer?.time || '7:13 PM'}</p>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Next prayer</p>
+                <p className="mt-3 text-2xl font-semibold text-amber-300">{prayerDetails.nextPrayer?.name || 'Maghrib'}</p>
+                <div className="mt-3 space-y-1 text-sm text-slate-300">
+                  <p><span className="text-slate-400">Start:</span> {prayerDetails.nextPrayer?.time || '7:13 PM'}</p>
+                  <p><span className="text-slate-400">End:</span> {prayerDetails.prayers[(prayerDetails.prayers.findIndex((prayer) => prayer.name === prayerDetails.nextPrayer?.name) + 1) % prayerDetails.prayers.length]?.time || '8:35 PM'}</p>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
