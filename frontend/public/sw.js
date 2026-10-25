@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sg-restaurants-v1';
+const CACHE_NAME = 'sg-restaurants-v2';
 const APP_SHELL = ['/', '/map', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
@@ -23,6 +23,21 @@ self.addEventListener('fetch', (event) => {
 
   const requestUrl = new URL(event.request.url);
   if (requestUrl.origin !== self.location.origin) {
+    return;
+  }
+
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse.ok) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(event.request).then((cachedResponse) => cachedResponse || caches.match('/')))
+    );
     return;
   }
 
