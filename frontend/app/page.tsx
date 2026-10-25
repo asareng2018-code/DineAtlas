@@ -29,6 +29,11 @@ type Offer = {
   restaurantId: number;
 };
 
+type MenuItem = {
+  name: string;
+  price: string;
+};
+
 const defaultRestaurants: Restaurant[] = [
   { id: 1, name: 'Saffron Bites', cuisine: 'Indian', halal: true, location: 'Downtown' },
   { id: 2, name: 'Harbor Grill', cuisine: 'Seafood', halal: true, location: 'Harborfront' },
@@ -36,6 +41,15 @@ const defaultRestaurants: Restaurant[] = [
   { id: 4, name: 'Cedar Kitchen', cuisine: 'Middle Eastern', halal: true, location: 'City Centre' },
   { id: 5, name: 'Tenderbest Makcik Tuckshop', cuisine: 'Chicken and Western', halal: true, location: '71 Kallang Bahru, Geylang Bahru' },
 ];
+
+const restaurantMenus: Record<string, MenuItem[]> = {
+  'Tenderbest Makcik Tuckshop': [
+    { name: 'Signature Crispy Spring Chicken (Whole)', price: 'S$23.90' },
+    { name: 'Crispy Half Spring Chicken', price: 'From S$13.90' },
+    { name: 'Fried Chicken Set with Fries and Coleslaw', price: 'From S$11.90' },
+    { name: 'Crispy Chicken Wings', price: 'From S$6.00' },
+  ],
+};
 
 const defaultPrayerSchedule = [
   { name: 'Fajr', time: '5:12 AM' },
@@ -112,6 +126,7 @@ export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
+  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [notice, setNotice] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [activeFilter, setActiveFilter] = useState<string>('all');
@@ -123,6 +138,25 @@ export default function Home() {
     nextPrayer: defaultPrayerSchedule[1],
   });
   const t = translations[locale];
+  const selectedOffers = selectedRestaurant
+    ? offers.filter((offer) => offer.restaurantId === selectedRestaurant.id)
+    : [];
+  const selectedMenu = selectedRestaurant ? restaurantMenus[selectedRestaurant.name] || [] : [];
+
+  useEffect(() => {
+    if (!selectedRestaurant) {
+      return;
+    }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setSelectedRestaurant(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [selectedRestaurant]);
 
   useEffect(() => {
     const updateCurrentPrayer = () => {
@@ -552,6 +586,7 @@ export default function Home() {
                 <div className="mt-4 flex gap-2">
                   <button
                     type="button"
+                    onClick={() => setSelectedRestaurant(restaurant)}
                     aria-label={`${t.viewDetails} for ${restaurant.name}`}
                     className="inline-flex flex-1 items-center justify-center rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-300 transition hover:bg-emerald-500/20 focus:outline-none focus:ring-2 focus:ring-emerald-400"
                   >
@@ -601,6 +636,80 @@ export default function Home() {
           </div>
         </section>
       </div>
+
+      {selectedRestaurant ? (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-6"
+          onClick={() => setSelectedRestaurant(null)}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="restaurant-details-title"
+            onClick={(event) => event.stopPropagation()}
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-t-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl sm:rounded-2xl"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm text-emerald-300">{selectedRestaurant.cuisine}</p>
+                <h2 id="restaurant-details-title" className="mt-1 text-2xl font-semibold text-white">
+                  {selectedRestaurant.name}
+                </h2>
+                <p className="mt-2 text-sm text-slate-400">{selectedRestaurant.location}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedRestaurant(null)}
+                aria-label="Close restaurant details"
+                className="rounded-lg border border-slate-600 px-3 py-2 text-sm text-slate-200 hover:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              >
+                Close
+              </button>
+            </div>
+
+            {selectedOffers.length > 0 ? (
+              <section aria-label="Promotions" className="mt-6">
+                <h3 className="text-lg font-semibold text-white">Promotions</h3>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {selectedOffers.map((offer) => (
+                    <article key={offer.id} className="rounded-lg border border-slate-700 bg-slate-950 p-4">
+                      <p className="text-sm font-semibold text-emerald-300">{offer.discount}% off</p>
+                      <h4 className="mt-2 font-medium text-white">{offer.title}</h4>
+                      <p className="mt-1 text-sm text-slate-300">{offer.description}</p>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ) : selectedMenu.length > 0 ? (
+              <section aria-label="Restaurant menu" className="mt-6">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-lg font-semibold text-white">Menu</h3>
+                  <a
+                    href="https://tenderbestmakciktuckshop.oddle.me/en_SG"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm font-medium text-emerald-300 underline decoration-emerald-500/50 underline-offset-4 hover:text-emerald-200"
+                  >
+                    Full menu
+                  </a>
+                </div>
+                <ul className="mt-3 divide-y divide-slate-700 rounded-lg border border-slate-700 bg-slate-950 px-4">
+                  {selectedMenu.map((item) => (
+                    <li key={item.name} className="flex items-start justify-between gap-4 py-3 text-sm">
+                      <span className="text-slate-100">{item.name}</span>
+                      <span className="shrink-0 font-medium text-emerald-300">{item.price}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : (
+              <p className="mt-6 rounded-lg border border-slate-700 bg-slate-950 p-4 text-sm text-slate-300">
+                No promotions or menu details are available yet.
+              </p>
+            )}
+          </section>
+        </div>
+      ) : null}
     </main>
   );
 }
