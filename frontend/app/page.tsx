@@ -51,6 +51,16 @@ const restaurantMenus: Record<string, MenuItem[]> = {
   ],
 };
 
+const videoChannelsByCategory: Record<string, { name: string; url: string }[]> = {
+  Children: [
+    { name: 'CoComelon - Nursery Rhymes', url: 'https://www.youtube.com/@CoComelon' },
+    { name: 'Pinkfong Baby Shark', url: 'https://www.youtube.com/@Pinkfong' },
+    { name: 'Super Simple Songs', url: 'https://www.youtube.com/@SuperSimpleSongs' },
+    { name: 'ChuChu TV Nursery Rhymes & Kids Songs', url: 'https://www.youtube.com/@ChuChuTV' },
+    { name: 'KidsmiloStory', url: 'https://www.youtube.com/@Kidsmilestory' },
+  ],
+};
+
 const defaultPrayerSchedule = [
   { name: 'Fajr', time: '5:12 AM' },
   { name: 'Dhuhr', time: '1:03 PM' },
@@ -127,6 +137,8 @@ export default function Home() {
   const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
+  const [isVideoViewerOpen, setIsVideoViewerOpen] = useState(false);
+  const [activeVideoCategory, setActiveVideoCategory] = useState('Children');
   const [notice, setNotice] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [activeFilter, setActiveFilter] = useState<string>('all');
@@ -157,6 +169,21 @@ export default function Home() {
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
   }, [selectedRestaurant]);
+
+  useEffect(() => {
+    if (!isVideoViewerOpen) {
+      return;
+    }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsVideoViewerOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isVideoViewerOpen]);
 
   useEffect(() => {
     const updateCurrentPrayer = () => {
@@ -442,6 +469,13 @@ export default function Home() {
             <div className="flex gap-2">
               <button
                 type="button"
+                onClick={() => setIsVideoViewerOpen(true)}
+                className="inline-flex items-center justify-center rounded-full border border-slate-600 px-4 py-2 text-sm font-medium text-slate-100 transition hover:border-emerald-500 hover:text-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              >
+                Video Viewer
+              </button>
+              <button
+                type="button"
                 onClick={requestLocation}
                 aria-label={t.useMyLocation}
                 className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-300"
@@ -707,6 +741,78 @@ export default function Home() {
                 No promotions or menu details are available yet.
               </p>
             )}
+          </section>
+        </div>
+      ) : null}
+
+      {isVideoViewerOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-6"
+          onClick={() => setIsVideoViewerOpen(false)}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="video-viewer-title"
+            onClick={(event) => event.stopPropagation()}
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-t-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl sm:rounded-2xl"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm text-emerald-300">YouTube categories</p>
+                <h2 id="video-viewer-title" className="mt-1 text-2xl font-semibold text-white">
+                  Video Viewer
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsVideoViewerOpen(false)}
+                aria-label="Close video viewer"
+                className="rounded-lg border border-slate-600 px-3 py-2 text-sm text-slate-200 hover:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              >
+                Close
+              </button>
+            </div>
+
+            <nav aria-label="Video categories" className="mt-5 flex flex-wrap gap-2">
+              {Object.keys(videoChannelsByCategory).map((category) => (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => setActiveVideoCategory(category)}
+                  aria-pressed={activeVideoCategory === category}
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-400 ${
+                    activeVideoCategory === category
+                      ? 'bg-emerald-500 text-slate-950'
+                      : 'border border-slate-600 text-slate-200 hover:border-emerald-500 hover:text-emerald-300'
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
+            </nav>
+
+            <section aria-label={`${activeVideoCategory} YouTube channels`} className="mt-5">
+              <h3 className="text-lg font-semibold text-white">Top 5 channels</h3>
+              <ol className="mt-3 divide-y divide-slate-700 rounded-lg border border-slate-700 bg-slate-950 px-4">
+                {videoChannelsByCategory[activeVideoCategory].map((channel, index) => (
+                  <li key={channel.url} className="flex items-center justify-between gap-4 py-3 text-sm">
+                    <span className="flex min-w-0 items-center gap-3 text-slate-100">
+                      <span className="w-5 shrink-0 text-slate-400">{index + 1}.</span>
+                      <span className="truncate">{channel.name}</span>
+                    </span>
+                    <a
+                      href={channel.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="shrink-0 font-medium text-emerald-300 underline decoration-emerald-500/50 underline-offset-4 hover:text-emerald-200"
+                    >
+                      Open channel
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </section>
           </section>
         </div>
       ) : null}
