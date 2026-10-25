@@ -9,6 +9,24 @@ describe('Restaurant API', () => {
     expect(response.body.status).toBe('ok');
   });
 
+  test('GET /api/profile returns an empty profile for public visitors', async () => {
+    const response = await request(app).get('/api/profile');
+
+    expect(response.status).toBe(200);
+    expect(response.body.user).toBeNull();
+  });
+
+  test('GET /api/restaurants includes nearby Tenderbest and sorts it first', async () => {
+    const response = await request(app).get('/api/restaurants?lat=1.3209957&lng=103.8703877&radius=1');
+
+    expect(response.status).toBe(200);
+    expect(response.body.restaurants[0]).toMatchObject({
+      name: 'Tenderbest Makcik Tuckshop',
+      location: '71 Kallang Bahru, Geylang Bahru',
+      distanceKm: 0,
+    });
+  });
+
   test('POST /api/restaurants validates input', async () => {
     const response = await request(app).post('/api/restaurants').send({
       name: 'A',

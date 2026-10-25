@@ -105,6 +105,14 @@ const sampleRestaurants = [
     location: 'Old Town',
     coordinates: { lat: 1.3344, lng: 103.742 },
   },
+  {
+    id: 4,
+    name: 'Tenderbest Makcik Tuckshop',
+    cuisine: 'Chicken and Western',
+    halal: true,
+    location: '71 Kallang Bahru, Geylang Bahru',
+    coordinates: { lat: 1.3209957, lng: 103.8703877 },
+  },
 ];
 
 const authProviders = [
@@ -439,7 +447,7 @@ app.post('/api/logout', (req, res) => {
 
 app.get('/api/profile', (req, res) => {
   if (!req.session || !req.session.user) {
-    return res.status(401).json({ message: 'Unauthorized' });
+    return res.json({ user: null });
   }
 
   return res.json({ user: req.session.user });

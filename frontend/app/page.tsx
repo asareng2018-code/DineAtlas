@@ -34,6 +34,7 @@ const defaultRestaurants: Restaurant[] = [
   { id: 2, name: 'Harbor Grill', cuisine: 'Seafood', halal: true, location: 'Harborfront' },
   { id: 3, name: 'Garden Table', cuisine: 'Mediterranean', halal: false, location: 'Old Town' },
   { id: 4, name: 'Cedar Kitchen', cuisine: 'Middle Eastern', halal: true, location: 'City Centre' },
+  { id: 5, name: 'Tenderbest Makcik Tuckshop', cuisine: 'Chicken and Western', halal: true, location: '71 Kallang Bahru, Geylang Bahru' },
 ];
 
 const defaultPrayerSchedule = [
@@ -114,12 +115,24 @@ export default function Home() {
   const [notice, setNotice] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [currentPrayer, setCurrentPrayer] = useState(defaultPrayerSchedule[0]);
+  const [isPrayerScheduleOpen, setIsPrayerScheduleOpen] = useState(false);
   const [prayerDetails, setPrayerDetails] = useState<{ city: string; nextPrayer?: { name: string; time: string }; prayers: { name: string; time: string }[] }>({
     city: 'Singapore',
     prayers: defaultPrayerSchedule,
-    nextPrayer: getNextPrayer(defaultPrayerSchedule),
+    nextPrayer: defaultPrayerSchedule[1],
   });
   const t = translations[locale];
+
+  useEffect(() => {
+    const updateCurrentPrayer = () => {
+      setCurrentPrayer(getCurrentPrayer(prayerDetails.prayers, prayerDetails.city) || defaultPrayerSchedule[0]);
+    };
+
+    updateCurrentPrayer();
+    const intervalId = window.setInterval(updateCurrentPrayer, 60_000);
+    return () => window.clearInterval(intervalId);
+  }, [prayerDetails.city, prayerDetails.prayers]);
 
   useEffect(() => {
     document.documentElement.lang = locale;
@@ -433,10 +446,10 @@ export default function Home() {
               <div>
                 <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Current prayer</p>
                 <p className="mt-3 text-2xl font-semibold text-emerald-300">
-                  {getCurrentPrayer(prayerDetails.prayers, prayerDetails.city)?.name || 'Fajr'}
+                  {currentPrayer.name || 'Fajr'}
                 </p>
                 <div className="mt-3 space-y-1 text-sm text-slate-300">
-                  <p><span className="text-slate-400">Start:</span> {getCurrentPrayer(prayerDetails.prayers, prayerDetails.city)?.time || '5:12 AM'}</p>
+                  <p><span className="text-slate-400">Start:</span> {currentPrayer.time || '5:12 AM'}</p>
                   <p><span className="text-slate-400">End:</span> {prayerDetails.nextPrayer?.time || '7:13 PM'}</p>
                 </div>
               </div>
@@ -461,20 +474,25 @@ export default function Home() {
             </div>
             <button
               type="button"
+              onClick={() => setIsPrayerScheduleOpen((isOpen) => !isOpen)}
+              aria-expanded={isPrayerScheduleOpen}
+              aria-controls="full-prayer-schedule"
               className="rounded-full border border-emerald-400/50 px-4 py-2 text-sm font-semibold text-emerald-200 hover:bg-emerald-500/10 focus:outline-none focus:ring-2 focus:ring-emerald-300"
             >
-              View full schedule
+              {isPrayerScheduleOpen ? 'Hide full schedule' : 'View full schedule'}
             </button>
           </div>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            {prayerDetails.prayers.map((prayer) => (
-              <div key={prayer.name} className="rounded-lg border border-slate-700 bg-slate-950 p-3">
-                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">{prayer.name}</p>
-                <p className="mt-2 text-lg font-semibold text-white">{prayer.time}</p>
-              </div>
-            ))}
-          </div>
+          {isPrayerScheduleOpen ? (
+            <div id="full-prayer-schedule" className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+              {prayerDetails.prayers.map((prayer) => (
+                <div key={prayer.name} className="rounded-lg border border-slate-700 bg-slate-950 p-3">
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-400">{prayer.name}</p>
+                  <p className="mt-2 text-lg font-semibold text-white">{prayer.time}</p>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </section>
 
         <section aria-label="Search and filters" className="mt-8 rounded-xl border border-slate-700 bg-slate-950 p-5">
